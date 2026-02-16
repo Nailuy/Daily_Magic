@@ -41,3 +41,4 @@ yarn-error.log*
 next-env.d.ts
 .env.local 
 instructions*.md 
+instructions_v5.md 

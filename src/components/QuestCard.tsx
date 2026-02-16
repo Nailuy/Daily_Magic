@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { ExternalLink, Lock, Loader2, CheckCircle2, Gift, Sparkles, Link2, Zap } from "lucide-react";
@@ -43,6 +43,13 @@ export default function QuestCard({
     const [twitterUrl, setTwitterUrl] = useState("");
     const [urlError, setUrlError] = useState("");
     const [claiming, setClaiming] = useState(false);
+
+    // CRITICAL: Sync status when alreadyCompleted changes (async DB load)
+    useEffect(() => {
+        if (alreadyCompleted) {
+            setStatus("claimed");
+        }
+    }, [alreadyCompleted]);
 
     const handleStart = useCallback(() => {
         if (!connected) return;
