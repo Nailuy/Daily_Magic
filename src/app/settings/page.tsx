@@ -4,25 +4,39 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Save, User, Moon, Sun, CheckCircle2 } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { useUser } from "@/hooks/useUser";
 
 export default function SettingsPage() {
     const { theme, toggleTheme } = useTheme();
+    const { user, updateProfile } = useUser();
     const [displayName, setDisplayName] = useState("");
     const [twitterHandle, setTwitterHandle] = useState("");
     const [discordHandle, setDiscordHandle] = useState("");
     const [saved, setSaved] = useState(false);
 
+    // Pre-populate from DB user data, fallback to localStorage
     useEffect(() => {
-        setDisplayName(localStorage.getItem("dm_display_name") || "");
-        setTwitterHandle(localStorage.getItem("dm_twitter_handle") || "");
-        setDiscordHandle(localStorage.getItem("dm_discord_handle") || "");
-    }, []);
+        if (user) {
+            setDisplayName(user.username || localStorage.getItem("dm_display_name") || "");
+            setTwitterHandle(user.twitter_handle || localStorage.getItem("dm_twitter_handle") || "");
+            setDiscordHandle(user.discord_handle || localStorage.getItem("dm_discord_handle") || "");
+        } else {
+            setDisplayName(localStorage.getItem("dm_display_name") || "");
+            setTwitterHandle(localStorage.getItem("dm_twitter_handle") || "");
+            setDiscordHandle(localStorage.getItem("dm_discord_handle") || "");
+        }
+    }, [user]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        // Save to Supabase
+        await updateProfile(displayName, twitterHandle, discordHandle);
+
+        // Also persist to localStorage as fallback
         localStorage.setItem("dm_display_name", displayName);
         localStorage.setItem("dm_twitter_handle", twitterHandle.replace("@", ""));
         localStorage.setItem("dm_discord_handle", discordHandle);
         window.dispatchEvent(new Event("dm_profile_updated"));
+
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
     };
@@ -87,8 +101,8 @@ export default function SettingsPage() {
                         <div className="pt-2">
                             <button onClick={handleSave}
                                 className={`flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-medium transition-all duration-300 cursor-pointer ${saved
-                                        ? "bg-green-500/10 border border-green-500/25 text-green-500"
-                                        : "bg-[#AA00FF]/10 border border-[#AA00FF]/25 text-[#AA00FF] hover:bg-[#AA00FF]/20 hover:shadow-[0_0_20px_rgba(170,0,255,0.15)]"
+                                    ? "bg-green-500/10 border border-green-500/25 text-green-500"
+                                    : "bg-[#AA00FF]/10 border border-[#AA00FF]/25 text-[#AA00FF] hover:bg-[#AA00FF]/20 hover:shadow-[0_0_20px_rgba(170,0,255,0.15)]"
                                     }`}>
                                 {saved ? <><CheckCircle2 className="h-4 w-4" />Saved!</> : <><Save className="h-4 w-4" />Save Profile</>}
                             </button>
@@ -119,7 +133,6 @@ export default function SettingsPage() {
                             </p>
                         </div>
 
-                        {/* Toggle */}
                         <button onClick={toggleTheme}
                             className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors duration-300 cursor-pointer ${theme === "dark" ? "bg-[#AA00FF]/30" : "bg-gray-300"
                                 }`}>

@@ -15,53 +15,61 @@ import {
 import QuestCard from "@/components/QuestCard";
 import { useUser } from "@/hooks/useUser";
 
-const dailyQuests = [
-    {
-        questId: "daily_gm_discord",
-        title: "Say GM in Discord",
-        description:
-            "Drop a GM in the #general channel to show you're active in the community today.",
-        xp: 10,
-        link: "https://discord.gg/magicblock",
-        icon: <MessageSquare className="h-5 w-5" />,
-        recurring: true,
-    },
-    {
-        questId: "daily_check_price",
-        title: "Check MAGIC Price",
-        description:
-            "Visit the token page and check the latest price action. Knowledge is power.",
-        xp: 5,
-        link: "https://magicblock.gg",
-        icon: <BarChart3 className="h-5 w-5" />,
-        recurring: true,
-    },
-    {
-        questId: "daily_share_tip",
-        title: "Share a Daily Tip",
-        description:
-            "Post a helpful tip about Solana or MagicBlock on X and paste the link.",
-        xp: 15,
-        link: "https://twitter.com/magicblock",
-        icon: <Zap className="h-5 w-5" />,
-        recurring: true,
-        validationType: "twitter_url" as const,
-    },
-    {
-        questId: "daily_visit_dashboard",
-        title: "Visit the Dashboard",
-        description:
-            "Check in on your Daily Magic dashboard. Consistency is the key to mastery.",
-        xp: 5,
-        link: "/",
-        icon: <Star className="h-5 w-5" />,
-        recurring: true,
-    },
-];
+/** Returns today's date as YYYY-MM-DD */
+function getTodayStr(): string {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+}
+
+function getDailyQuests(today: string) {
+    return [
+        {
+            questId: `daily_gm_${today}`,
+            title: "Say GM in Discord",
+            description:
+                "Drop a GM in the #general channel to show you're active in the community today.",
+            xp: 10,
+            link: "https://discord.gg/magicblock",
+            icon: <MessageSquare className="h-5 w-5" />,
+            daily: true,
+        },
+        {
+            questId: `daily_price_${today}`,
+            title: "Check MAGIC Price",
+            description:
+                "Visit the token page and check the latest price action. Knowledge is power.",
+            xp: 5,
+            link: "https://magicblock.gg",
+            icon: <BarChart3 className="h-5 w-5" />,
+            daily: true,
+        },
+        {
+            questId: `share_post_${today}`,
+            title: "Share a Post on X",
+            description:
+                "Post about Solana or MagicBlock on X and paste the link below.",
+            xp: 15,
+            link: "https://twitter.com/magicblock",
+            icon: <Zap className="h-5 w-5" />,
+            daily: true,
+            validationType: "twitter_url" as const,
+        },
+        {
+            questId: `daily_visit_${today}`,
+            title: "Visit the Dashboard",
+            description:
+                "Check in on your Daily Magic dashboard. Consistency is the key to mastery.",
+            xp: 5,
+            link: "/",
+            icon: <Star className="h-5 w-5" />,
+            daily: true,
+        },
+    ];
+}
 
 const milestoneQuests = [
     {
-        questId: "milestone_follow_x",
+        questId: "follow_twitter",
         title: "Follow Magic Block on X",
         description:
             "Stay in the loop with the latest updates, announcements, and alpha from the team.",
@@ -70,7 +78,7 @@ const milestoneQuests = [
         icon: <Twitter className="h-5 w-5" />,
     },
     {
-        questId: "milestone_join_discord",
+        questId: "join_discord",
         title: "Join the Discord",
         description:
             "Connect with the community, ask questions, and participate in exclusive events.",
@@ -79,7 +87,7 @@ const milestoneQuests = [
         icon: <MessageSquare className="h-5 w-5" />,
     },
     {
-        questId: "milestone_read_docs",
+        questId: "read_docs",
         title: "Read the Documentation",
         description:
             "Dive deep into Ephemeral Rollups, BOLT ECS, and the full MagicBlock architecture.",
@@ -88,7 +96,7 @@ const milestoneQuests = [
         icon: <BookOpen className="h-5 w-5" />,
     },
     {
-        questId: "milestone_invite_friends",
+        questId: "invite_friends",
         title: "Invite 3 Friends",
         description:
             "Spread the word. Invite three friends to the Daily Magic platform and earn bonus XP.",
@@ -97,7 +105,7 @@ const milestoneQuests = [
         icon: <Users className="h-5 w-5" />,
     },
     {
-        questId: "milestone_visit_site",
+        questId: "visit_site",
         title: "Visit MagicBlock.gg",
         description:
             "Explore the official website and learn about the high-speed Solana L2.",
@@ -106,10 +114,10 @@ const milestoneQuests = [
         icon: <Globe className="h-5 w-5" />,
     },
     {
-        questId: "milestone_reach_level5",
-        title: "Reach Level 5",
+        questId: "reach_wizard",
+        title: "Reach Wizard Rank",
         description:
-            "Accumulate enough XP across all quests to reach Mage Level 5. Prove your dedication.",
+            "Accumulate 100 XP across all quests to reach Wizard rank. Prove your dedication.",
         xp: 200,
         link: "#",
         icon: <Trophy className="h-5 w-5" />,
@@ -118,6 +126,8 @@ const milestoneQuests = [
 
 export default function QuestsPage() {
     const { completedQuests, refreshUser } = useUser();
+    const today = getTodayStr();
+    const dailyQuests = getDailyQuests(today);
 
     return (
         <>
@@ -177,7 +187,7 @@ export default function QuestsPage() {
                             link={quest.link}
                             icon={quest.icon}
                             index={i}
-                            recurring
+                            daily
                             validationType={quest.validationType}
                             alreadyCompleted={completedQuests.has(quest.questId)}
                             onClaimed={refreshUser}

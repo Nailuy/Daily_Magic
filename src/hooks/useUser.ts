@@ -4,21 +4,24 @@ import { useState, useEffect, useCallback } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 
-interface UserData {
+export interface UserData {
     wallet_address: string;
+    username: string | null;
+    twitter_handle: string | null;
+    discord_handle: string | null;
     xp: number;
     rank: string;
-    referral_code: string;
-    created_at: string;
 }
 
-interface UseUserReturn {
+export interface UseUserReturn {
     user: UserData | null;
     xp: number;
     rank: string;
     completedQuests: Set<string>;
     loading: boolean;
+    needsProfile: boolean;
     refreshUser: () => Promise<void>;
+    updateProfile: (username: string, twitter: string, discord: string) => Promise<void>;
 }
 
 const RANKS = [
@@ -65,11 +68,10 @@ export function useUser(): UseUserReturn {
                 .single();
 
             if (fetchError && fetchError.code === "PGRST116") {
-                // User does not exist — insert
-                const refCode = Math.random().toString(36).substring(2, 10);
+                // User does not exist — insert with wallet_address ONLY
                 const { data: newUser, error: insertError } = await supabase
                     .from("users")
-                    .insert({ wallet_address: walletAddress, xp: 0, rank: "Verified Human", referral_code: refCode })
+                    .insert({ wallet_address: walletAddress })
                     .select()
                     .single();
 
@@ -77,16 +79,8 @@ export function useUser(): UseUserReturn {
                     console.error("Error creating user:", insertError);
                 } else {
                     setUser(newUser);
-                    // Handle referral
-                    handleReferral(walletAddress);
                 }
             } else if (existing) {
-                // Update rank based on XP
-                const rankInfo = getRankForXp(existing.xp);
-                if (existing.rank !== rankInfo.name) {
-                    await supabase.from("users").update({ rank: rankInfo.name }).eq("wallet_address", walletAddress);
-                    existing.rank = rankInfo.name;
-                }
                 setUser(existing);
             }
 
@@ -106,29 +100,36 @@ export function useUser(): UseUserReturn {
         }
     }, [walletAddress]);
 
-    // Handle referral from URL param
-    const handleReferral = async (newUserWallet: string) => {
-        if (typeof window === "undefined") return;
-        const params = new URLSearchParams(window.location.search);
-        const refCode = params.get("ref");
-        if (!refCode) return;
+    const updateProfile = useCallback(async (username: string, twitter: string, discord: string) => {
+        if (!walletAddress || !isSupabaseConfigured()) return;
 
         try {
-            // Find the referrer
-            const { data: referrer } = await supabase
+            const { error } = await supabase
                 .from("users")
-                .select("wallet_address")
-                .eq("referral_code", refCode)
-                .single();
+                .update({
+                    username: username || null,
+                    twitter_handle: twitter || null,
+                    discord_handle: discord || null,
+                })
+                .eq("wallet_address", walletAddress);
 
-            if (referrer && referrer.wallet_address !== newUserWallet) {
-                // Award referral XP to the referrer
-                await supabase.rpc("add_xp", { user_wallet: referrer.wallet_address, xp_amount: 50 });
+            if (error) {
+                console.error("Error updating profile:", error);
+                return;
             }
+
+            // Sync to localStorage for sidebar avatar
+            localStorage.setItem("dm_display_name", username);
+            localStorage.setItem("dm_twitter_handle", twitter.replace("@", ""));
+            localStorage.setItem("dm_discord_handle", discord);
+            window.dispatchEvent(new Event("dm_profile_updated"));
+
+            // Refresh user data
+            await fetchUser();
         } catch (err) {
-            console.error("Referral error:", err);
+            console.error("Profile update error:", err);
         }
-    };
+    }, [walletAddress, fetchUser]);
 
     useEffect(() => {
         fetchUser();
@@ -136,6 +137,7 @@ export function useUser(): UseUserReturn {
 
     const xp = user?.xp || 0;
     const rankInfo = getRankForXp(xp);
+    const needsProfile = connected && !!user && !user.username;
 
     return {
         user,
@@ -143,6 +145,8 @@ export function useUser(): UseUserReturn {
         rank: rankInfo.name,
         completedQuests,
         loading,
+        needsProfile,
         refreshUser: fetchUser,
+        updateProfile,
     };
 }

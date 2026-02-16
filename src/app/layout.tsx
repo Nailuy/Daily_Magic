@@ -5,6 +5,7 @@ import WalletContextProvider from "@/components/WalletContextProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { SessionProvider } from "@/components/SessionContext";
 import AppShell from "@/components/AppShell";
+import ProfileModal from "@/components/ProfileModal";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,6 +30,7 @@ export default function RootLayout({
         <WalletContextProvider>
           <SessionProvider>
             <ThemeProvider>
+              <ProfileModal />
               <AppShell>{children}</AppShell>
             </ThemeProvider>
           </SessionProvider>

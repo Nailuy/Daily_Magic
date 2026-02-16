@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Twitter, Sparkles, TrendingUp, Award } from "lucide-react";
 import SecurityModal from "@/components/SecurityModal";
+import Leaderboard from "@/components/Leaderboard";
 import { useUser, getRankForXp } from "@/hooks/useUser";
 
 export default function DashboardPage() {
@@ -20,18 +21,16 @@ export default function DashboardPage() {
     const container = timelineRef.current;
     if (!container) return;
 
-    // Create the timeline link anchor
     const anchor = document.createElement("a");
     anchor.className = "twitter-timeline";
     anchor.setAttribute("data-theme", "dark");
     anchor.setAttribute("data-chrome", "noheader nofooter noborders transparent");
-    anchor.setAttribute("data-height", "600");
+    anchor.setAttribute("data-height", "400");
     anchor.href = "https://twitter.com/MagicBlock";
     anchor.textContent = "Tweets by MagicBlock";
     container.innerHTML = "";
     container.appendChild(anchor);
 
-    // Load Twitter widgets.js
     const script = document.createElement("script");
     script.src = "https://platform.twitter.com/widgets.js";
     script.async = true;
@@ -73,7 +72,6 @@ export default function DashboardPage() {
           demand. Complete quests, learn about the tech, and earn your Mage rank.
         </p>
 
-        {/* Stats row */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -134,7 +132,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Progress Bar */}
         {rankInfo.nextThreshold && (
           <div className="relative h-2 rounded-full bg-white/[0.04] overflow-hidden">
             <motion.div
@@ -147,12 +144,15 @@ export default function DashboardPage() {
         )}
       </motion.div>
 
-      {/* Section Label */}
+      {/* Leaderboard */}
+      <Leaderboard />
+
+      {/* Twitter Feed Section */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="flex items-center gap-3 mb-6"
+        transition={{ delay: 0.4 }}
+        className="flex items-center gap-3 mb-6 mt-10"
       >
         <Twitter className="h-4 w-4 text-[#AA00FF]/50" />
         <h2 className="text-sm font-semibold text-gray-600 dark:text-white/60">
@@ -161,11 +161,10 @@ export default function DashboardPage() {
         <div className="h-px flex-1 bg-gray-200 dark:bg-white/5" />
       </motion.div>
 
-      {/* Twitter Timeline Embed */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
         className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden"
       >
         <div ref={timelineRef} className="min-h-[200px]" />
@@ -179,7 +178,7 @@ export default function DashboardPage() {
         className="mt-12 py-8 border-t border-gray-200 dark:border-white/5"
       >
         <p className="text-center text-[11px] font-mono text-gray-300 dark:text-white/15 tracking-wider">
-          DAILY MAGIC v3.0 &mdash; Built on Magic Block L2
+          DAILY MAGIC v4.0 &mdash; Built on Magic Block L2
         </p>
       </motion.div>
     </>

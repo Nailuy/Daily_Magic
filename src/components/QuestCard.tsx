@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { ExternalLink, Lock, Loader2, CheckCircle2, Gift, Sparkles, RotateCcw, Link2 } from "lucide-react";
+import { ExternalLink, Lock, Loader2, CheckCircle2, Gift, Sparkles, Link2, Zap } from "lucide-react";
 import confetti from "canvas-confetti";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { useSession } from "@/components/SessionContext";
@@ -16,7 +16,7 @@ interface QuestCardProps {
     link: string;
     icon: React.ReactNode;
     index: number;
-    recurring?: boolean;
+    daily?: boolean;
     validationType?: "twitter_url";
     alreadyCompleted?: boolean;
     onClaimed?: () => void;
@@ -30,7 +30,7 @@ export default function QuestCard({
     link,
     icon,
     index,
-    recurring,
+    daily,
     validationType,
     alreadyCompleted,
     onClaimed,
@@ -47,7 +47,7 @@ export default function QuestCard({
     const handleStart = useCallback(() => {
         if (!connected) return;
 
-        // For twitter_url validation, don't open link — user needs to paste URL
+        // For twitter_url validation, show input field
         if (validationType === "twitter_url") {
             setStatus("verifying");
             return;
@@ -62,7 +62,6 @@ export default function QuestCard({
         setStatus("verifying");
 
         if (sessionActive) {
-            // Instant verification when session is active
             setStatus("verified");
         } else {
             setTimeout(() => setStatus("verified"), 3000);
@@ -90,19 +89,27 @@ export default function QuestCard({
     }, [twitterUrl, sessionActive]);
 
     const handleClaim = useCallback(async () => {
-        if (!publicKey) return;
+        if (!publicKey || !isSupabaseConfigured()) return;
         setClaiming(true);
         const walletAddress = publicKey.toBase58();
 
         try {
-            // 1. Insert into user_quests to lock it
+            // Build insert payload — include submission_data for URL-based quests
+            const insertPayload: Record<string, string> = {
+                wallet_address: walletAddress,
+                quest_id: questId,
+            };
+            if (validationType === "twitter_url" && twitterUrl.trim()) {
+                insertPayload.submission_data = twitterUrl.trim();
+            }
+
+            // 1. Insert into user_quests
             const { error: questError } = await supabase
                 .from("user_quests")
-                .insert({ wallet_address: walletAddress, quest_id: questId });
+                .insert(insertPayload);
 
             if (questError) {
                 console.error("Quest record error:", questError);
-                // If duplicate, still mark as claimed
                 if (questError.code === "23505") {
                     setStatus("claimed");
                     return;
@@ -121,11 +128,6 @@ export default function QuestCard({
             setStatus("claimed");
             onClaimed?.();
 
-            // Also update localStorage for sidebar compatibility
-            const currentXp = parseInt(localStorage.getItem("dm_total_xp") || "0", 10);
-            localStorage.setItem("dm_total_xp", (currentXp + xp).toString());
-            window.dispatchEvent(new Event("dm_profile_updated"));
-
             confetti({
                 particleCount: 80,
                 spread: 60,
@@ -137,13 +139,7 @@ export default function QuestCard({
         } finally {
             setClaiming(false);
         }
-    }, [publicKey, questId, xp, onClaimed]);
-
-    const handleReset = useCallback(() => {
-        setStatus("idle");
-        setTwitterUrl("");
-        setUrlError("");
-    }, []);
+    }, [publicKey, questId, xp, twitterUrl, validationType, onClaimed]);
 
     const isLocked = !connected;
 
@@ -159,10 +155,10 @@ export default function QuestCard({
                     : "border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] hover:border-[#AA00FF]/20 dark:hover:bg-white/[0.04] hover:shadow-[0_0_40px_rgba(170,0,255,0.08)]"
                 }`}
         >
-            {/* Recurring badge */}
-            {recurring && (
+            {/* Daily badge */}
+            {daily && (
                 <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-[#AA00FF]/10 px-2 py-0.5 border border-[#AA00FF]/20">
-                    <RotateCcw className="h-2.5 w-2.5 text-[#AA00FF]/60" />
+                    <Zap className="h-2.5 w-2.5 text-[#AA00FF]/60" />
                     <span className="text-[9px] font-mono text-[#AA00FF]/60">DAILY</span>
                 </div>
             )}
@@ -176,12 +172,10 @@ export default function QuestCard({
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.06] text-gray-500 dark:text-white/50 group-hover:text-[#AA00FF]/70 transition-colors duration-300">
                         {icon}
                     </div>
-                    {!recurring && (
-                        <div className="flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.06] px-3 py-1">
-                            <Sparkles className="h-3 w-3 text-[#AA00FF]/60" />
-                            <span className="font-mono text-[11px] font-medium text-gray-500 dark:text-white/50">{xp} XP</span>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.06] px-3 py-1">
+                        <Sparkles className="h-3 w-3 text-[#AA00FF]/60" />
+                        <span className="font-mono text-[11px] font-medium text-gray-500 dark:text-white/50">{xp} XP</span>
+                    </div>
                 </div>
 
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white/90 mb-1.5">{title}</h3>
@@ -236,13 +230,8 @@ export default function QuestCard({
                         )}
                     </button>
                 ) : (
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-green-500/80">
-                            <CheckCircle2 className="h-3.5 w-3.5" /><span className="font-mono text-[11px]">Claimed</span>
-                        </div>
-                        {recurring && (
-                            <button onClick={handleReset} className="text-[10px] text-gray-400 dark:text-white/20 hover:text-[#AA00FF] transition-colors cursor-pointer font-mono">Reset</button>
-                        )}
+                    <div className="flex items-center gap-2 text-green-500/80">
+                        <CheckCircle2 className="h-3.5 w-3.5" /><span className="font-mono text-[11px]">Claimed</span>
                     </div>
                 )}
             </div>
