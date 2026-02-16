@@ -1,6 +1,6 @@
 <div align="center">
   <br />
-    <img src="public/logo.png" alt="Daily Magic Logo" width="120">
+    <img src="public/MagicBlock-Logomark-White.png" alt="Daily Magic Logo" width="120">
   <br />
 
   <h1>✨ Daily Magic</h1>
