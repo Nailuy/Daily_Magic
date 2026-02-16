@@ -1,0 +1,188 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ===== Base Styles ===== */
+@layer base {
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: "Inter", "Geist", system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* Light mode body defaults */
+  body {
+    background: #f8f9fa;
+    color: #1a1a2e;
+  }
+
+  /* Dark mode body */
+  .dark body {
+    background: #050505;
+    color: #ffffff;
+  }
+
+  /* Custom Scrollbar - Dark */
+  .dark ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(170, 0, 255, 0.3);
+    border-radius: 3px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(170, 0, 255, 0.5);
+  }
+
+  /* Custom Scrollbar - Light */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(170, 0, 255, 0.2);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(170, 0, 255, 0.4);
+  }
+}
+
+/* ===== Solana Wallet Adapter Button Overrides ===== */
+.wallet-adapter-button {
+  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", monospace !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 10px 20px !important;
+  backdrop-filter: blur(12px) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+}
+
+/* Light mode wallet button */
+:root:not(.dark) .wallet-adapter-button {
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.wallet-adapter-button:hover {
+  background: rgba(170, 0, 255, 0.1) !important;
+  border-color: rgba(170, 0, 255, 0.5) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 20px rgba(170, 0, 255, 0.25),
+    inset 0 0 20px rgba(170, 0, 255, 0.05) !important;
+}
+
+:root:not(.dark) .wallet-adapter-button:hover {
+  color: #1a1a2e !important;
+}
+
+.wallet-adapter-button-trigger {
+  background: rgba(170, 0, 255, 0.08) !important;
+  border: 1px solid rgba(170, 0, 255, 0.2) !important;
+}
+
+.wallet-adapter-button-trigger:hover {
+  background: rgba(170, 0, 255, 0.15) !important;
+  border-color: rgba(170, 0, 255, 0.6) !important;
+  box-shadow: 0 0 25px rgba(170, 0, 255, 0.3),
+    inset 0 0 25px rgba(170, 0, 255, 0.08) !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  background: rgba(8, 8, 8, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 16px !important;
+}
+
+.wallet-adapter-modal-button-close {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.wallet-adapter-modal-button-close:hover {
+  background: rgba(170, 0, 255, 0.2) !important;
+}
+
+.wallet-adapter-modal-list li {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button {
+  border: none !important;
+  border-radius: 8px !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  background: rgba(170, 0, 255, 0.1) !important;
+}
+
+/* ===== Utility Classes ===== */
+@layer utilities {
+  .glass {
+    backdrop-filter: blur(12px);
+  }
+
+  .glass-dark {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-light {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(170, 0, 255, 0.3);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg,
+        #ffffff 0%,
+        rgba(170, 0, 255, 0.8) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-light {
+    background: linear-gradient(135deg,
+        #1a1a2e 0%,
+        rgba(170, 0, 255, 0.9) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
