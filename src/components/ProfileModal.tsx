@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, X, Save, CheckCircle2 } from "lucide-react";
+import { User, X, Save, CheckCircle2, Gift } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 
 export default function ProfileModal() {
@@ -10,15 +10,18 @@ export default function ProfileModal() {
     const [username, setUsername] = useState("");
     const [twitter, setTwitter] = useState("");
     const [discord, setDiscord] = useState("");
+    const [referralCode, setReferralCode] = useState("");
     const [saving, setSaving] = useState(false);
     const [dismissed, setDismissed] = useState(false);
 
     if (!needsProfile || dismissed) return null;
 
+    const allFieldsFilled = username.trim() && twitter.trim() && discord.trim();
+
     const handleSave = async () => {
-        if (!username.trim()) return;
+        if (!allFieldsFilled) return;
         setSaving(true);
-        await updateProfile(username.trim(), twitter.trim(), discord.trim());
+        await updateProfile(username.trim(), twitter.trim(), discord.trim(), referralCode.trim() || undefined);
         setSaving(false);
     };
 
@@ -52,7 +55,7 @@ export default function ProfileModal() {
                         </div>
                         <div>
                             <h2 className="text-sm font-semibold text-white/90">Complete Your Profile</h2>
-                            <p className="text-xs text-white/30">Set up your identity to start earning XP</p>
+                            <p className="text-xs text-white/30">All fields are required to start earning XP</p>
                         </div>
                     </div>
 
@@ -73,7 +76,7 @@ export default function ProfileModal() {
 
                         <div>
                             <label className="block text-[10px] font-mono text-white/40 mb-1.5 uppercase tracking-wider">
-                                X (Twitter) Handle
+                                X (Twitter) Handle <span className="text-[#AA00FF]">*</span>
                             </label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-white/20">@</span>
@@ -89,7 +92,7 @@ export default function ProfileModal() {
 
                         <div>
                             <label className="block text-[10px] font-mono text-white/40 mb-1.5 uppercase tracking-wider">
-                                Discord Handle
+                                Discord Handle <span className="text-[#AA00FF]">*</span>
                             </label>
                             <input
                                 type="text"
@@ -99,7 +102,31 @@ export default function ProfileModal() {
                                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.02] py-3 px-4 text-sm text-white/80 placeholder:text-white/20 outline-none transition-all focus:border-[#AA00FF]/40"
                             />
                         </div>
+
+                        {/* Referral Code (Optional) */}
+                        <div>
+                            <label className="block text-[10px] font-mono text-white/40 mb-1.5 uppercase tracking-wider">
+                                Referral Code <span className="text-white/20">(Optional)</span>
+                            </label>
+                            <div className="relative">
+                                <Gift className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+                                <input
+                                    type="text"
+                                    value={referralCode}
+                                    onChange={(e) => setReferralCode(e.target.value)}
+                                    placeholder="Enter a friend's referral code"
+                                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.02] py-3 pl-10 pr-4 text-sm font-mono text-white/80 placeholder:text-white/20 outline-none transition-all focus:border-[#AA00FF]/40"
+                                />
+                            </div>
+                        </div>
                     </div>
+
+                    {/* Validation hint */}
+                    {!allFieldsFilled && (
+                        <p className="text-[10px] font-mono text-amber-400/60 mb-4">
+                            Please fill in all required fields (*)
+                        </p>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-3">
@@ -111,7 +138,7 @@ export default function ProfileModal() {
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={!username.trim() || saving}
+                            disabled={!allFieldsFilled || saving}
                             className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#AA00FF]/10 border border-[#AA00FF]/25 px-4 py-3 text-sm font-medium text-[#AA00FF] hover:bg-[#AA00FF]/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {saving ? (

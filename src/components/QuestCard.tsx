@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { ExternalLink, Lock, Loader2, CheckCircle2, Gift, Sparkles, Link2, Zap, AlertTriangle } from "lucide-react";
+import { ExternalLink, Lock, Loader2, CheckCircle2, Gift, Sparkles, Link2, Zap, AlertTriangle, Copy, Check } from "lucide-react";
 import confetti from "canvas-confetti";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { useSession } from "@/components/SessionContext";
@@ -17,11 +17,12 @@ interface QuestCardProps {
     icon: React.ReactNode;
     index: number;
     daily?: boolean;
-    validationType?: "twitter_url" | "xp_gate";
+    validationType?: "twitter_url" | "xp_gate" | "referral_gate";
     alreadyCompleted?: boolean;
     onClaimed?: () => void;
     userTwitterHandle?: string;
     userXp?: number;
+    userReferralCode?: string;
 }
 
 export default function QuestCard({
@@ -38,6 +39,7 @@ export default function QuestCard({
     onClaimed,
     userTwitterHandle,
     userXp,
+    userReferralCode,
 }: QuestCardProps) {
     const { connected, publicKey } = useWallet();
     const { sessionActive } = useSession();
@@ -48,6 +50,7 @@ export default function QuestCard({
     const [urlError, setUrlError] = useState("");
     const [claiming, setClaiming] = useState(false);
     const [toastError, setToastError] = useState("");
+    const [copied, setCopied] = useState(false);
 
     // CRITICAL: Sync status when alreadyCompleted changes (async DB load)
     useEffect(() => {
@@ -64,6 +67,50 @@ export default function QuestCard({
         }
     }, [toastError]);
 
+    // Auto-dismiss copy state
+    useEffect(() => {
+        if (copied) {
+            const t = setTimeout(() => setCopied(false), 2000);
+            return () => clearTimeout(t);
+        }
+    }, [copied]);
+
+    const handleCopyReferralLink = useCallback(() => {
+        if (!userReferralCode) {
+            setToastError("Complete your profile first to get a referral code.");
+            return;
+        }
+        const refLink = `https://dailymagic.vercel.app/?ref=${userReferralCode}`;
+        navigator.clipboard.writeText(refLink);
+        setCopied(true);
+    }, [userReferralCode]);
+
+    const handleVerifyReferrals = useCallback(async () => {
+        if (!userReferralCode || !isSupabaseConfigured()) {
+            setToastError("Complete your profile first to get a referral code.");
+            return;
+        }
+
+        // Query how many users have referred_by matching our code
+        const { count, error } = await supabase
+            .from("users")
+            .select("*", { count: "exact", head: true })
+            .eq("referred_by", userReferralCode);
+
+        if (error) {
+            console.error("Referral count error:", error);
+            setToastError("Could not verify referrals. Try again.");
+            return;
+        }
+
+        const referralCount = count || 0;
+        if (referralCount >= 3) {
+            setStatus("verified");
+        } else {
+            setToastError(`You have only invited ${referralCount}/3 friends so far.`);
+        }
+    }, [userReferralCode]);
+
     const handleStart = useCallback(() => {
         if (!connected) return;
 
@@ -79,15 +126,18 @@ export default function QuestCard({
                 setToastError("You need at least 100 XP (Wizard Rank) to claim this!");
                 return;
             }
-            // XP requirement met — go straight to verified
             setStatus("verified");
+            return;
+        }
+
+        // For referral gate, show copy + verify UI
+        if (validationType === "referral_gate") {
+            setStatus("verifying");
             return;
         }
 
         if (link !== "#" && !link.startsWith("/")) {
             window.open(link, "_blank");
-        } else if (link.startsWith("/")) {
-            /* internal link — no new tab needed */
         }
 
         setStatus("verifying");
@@ -143,7 +193,6 @@ export default function QuestCard({
         const walletAddress = publicKey.toBase58();
 
         try {
-            // Build insert payload — include submission_data for URL-based quests
             const insertPayload: Record<string, string> = {
                 wallet_address: walletAddress,
                 quest_id: questId,
@@ -152,7 +201,6 @@ export default function QuestCard({
                 insertPayload.submission_data = twitterUrl.trim();
             }
 
-            // 1. Insert into user_quests
             const { error: questError } = await supabase
                 .from("user_quests")
                 .insert(insertPayload);
@@ -165,7 +213,6 @@ export default function QuestCard({
                 }
             }
 
-            // 2. Call RPC to add XP
             const { error: rpcError } = await supabase
                 .rpc("add_xp", { user_wallet: walletAddress, xp_amount: xp });
 
@@ -173,7 +220,6 @@ export default function QuestCard({
                 console.error("RPC error:", rpcError);
             }
 
-            // 3. Update UI
             setStatus("claimed");
             onClaimed?.();
 
@@ -204,13 +250,15 @@ export default function QuestCard({
                     : "border-gray-200 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] hover:border-[#AA00FF]/20 dark:hover:bg-white/[0.04] hover:shadow-[0_0_40px_rgba(170,0,255,0.08)]"
                 }`}
         >
-            {/* Daily badge */}
-            {daily && (
-                <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-[#AA00FF]/10 px-2 py-0.5 border border-[#AA00FF]/20">
-                    <Zap className="h-2.5 w-2.5 text-[#AA00FF]/60" />
-                    <span className="text-[9px] font-mono text-[#AA00FF]/60">DAILY</span>
-                </div>
-            )}
+            {/* Top-right badges: stacked vertically to avoid overlap */}
+            <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
+                {daily && (
+                    <div className="flex items-center gap-1 rounded-full bg-[#AA00FF]/10 px-2 py-0.5 border border-[#AA00FF]/20">
+                        <Zap className="h-2.5 w-2.5 text-[#AA00FF]/60" />
+                        <span className="text-[9px] font-mono text-[#AA00FF]/60">DAILY</span>
+                    </div>
+                )}
+            </div>
 
             {/* Toast error */}
             {toastError && (
@@ -273,6 +321,28 @@ export default function QuestCard({
                                 </button>
                             </div>
                             {urlError && <p className="text-[10px] font-mono text-red-400">{urlError}</p>}
+                        </div>
+                    ) : validationType === "referral_gate" ? (
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleCopyReferralLink}
+                                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2 font-mono text-[11px] font-medium text-white/60 hover:bg-[#AA00FF]/10 hover:border-[#AA00FF]/25 hover:text-[#AA00FF] cursor-pointer transition-all"
+                                >
+                                    {copied ? (
+                                        <><Check className="h-3.5 w-3.5 text-green-400" />Link Copied!</>
+                                    ) : (
+                                        <><Copy className="h-3.5 w-3.5" />Copy Referral Link</>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={handleVerifyReferrals}
+                                    className="rounded-xl bg-[#AA00FF]/10 border border-[#AA00FF]/25 px-3 py-2 font-mono text-[11px] font-medium text-[#AA00FF] hover:bg-[#AA00FF]/20 cursor-pointer transition-all"
+                                >
+                                    Verify
+                                </button>
+                            </div>
+                            <p className="text-[9px] font-mono text-white/25">Share your link, then click Verify when 3 friends have signed up</p>
                         </div>
                     ) : (
                         <div className="flex items-center gap-2 text-[#AA00FF]/70">

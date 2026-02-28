@@ -25,9 +25,9 @@ function getDailyQuests(today: string) {
     return [
         {
             questId: `daily_gm_${today}`,
-            title: "Say GM in Discord",
+            title: "Say gMagic in Discord",
             description:
-                "Drop a GM in the #general channel to show you're active in the community today.",
+                "Drop a gMagic in the #✨︱gmagic channel to show you're active in the community today.",
             xp: 10,
             link: "https://discord.com/channels/943797222162726962/1021340411022819328",
             icon: <MessageSquare className="h-5 w-5" />,
@@ -103,6 +103,7 @@ const milestoneQuests = [
         xp: 150,
         link: "#",
         icon: <Users className="h-5 w-5" />,
+        validationType: "referral_gate" as const,
     },
     {
         questId: "visit_site",
@@ -132,6 +133,7 @@ export default function QuestsPage() {
     const dailyQuests = getDailyQuests(today);
 
     const userTwitterHandle = user?.twitter_handle?.replace("@", "") || "";
+    const userReferralCode = user?.referral_code || "";
 
     return (
         <>
@@ -197,6 +199,7 @@ export default function QuestsPage() {
                             onClaimed={refreshUser}
                             userTwitterHandle={userTwitterHandle}
                             userXp={xp}
+                            userReferralCode={userReferralCode}
                         />
                     ))}
                 </div>

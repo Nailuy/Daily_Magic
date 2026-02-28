@@ -11,6 +11,8 @@ export interface UserData {
     discord_handle: string | null;
     xp: number;
     rank: string;
+    referral_code: string | null;
+    referred_by: string | null;
 }
 
 export interface UseUserReturn {
@@ -21,7 +23,7 @@ export interface UseUserReturn {
     loading: boolean;
     needsProfile: boolean;
     refreshUser: () => Promise<void>;
-    updateProfile: (username: string, twitter: string, discord: string) => Promise<void>;
+    updateProfile: (username: string, twitter: string, discord: string, referredBy?: string) => Promise<void>;
 }
 
 const RANKS = [
@@ -43,6 +45,13 @@ export function getRankForXp(xp: number): { name: string; threshold: number; nex
     return { name: current.name, threshold: current.threshold, nextThreshold: next };
 }
 
+/** Generate a unique referral code from username */
+function generateReferralCode(username: string): string {
+    const base = username.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
+    const rand = Math.random().toString(36).substring(2, 6);
+    return `${base}_${rand}`;
+}
+
 export function useUser(): UseUserReturn {
     const { publicKey, connected } = useWallet();
     const [user, setUser] = useState<UserData | null>(null);
@@ -60,7 +69,6 @@ export function useUser(): UseUserReturn {
 
         setLoading(true);
         try {
-            // Check if user exists
             const { data: existing, error: fetchError } = await supabase
                 .from("users")
                 .select("*")
@@ -68,7 +76,6 @@ export function useUser(): UseUserReturn {
                 .single();
 
             if (fetchError && fetchError.code === "PGRST116") {
-                // User does not exist — insert with wallet_address ONLY
                 const { data: newUser, error: insertError } = await supabase
                     .from("users")
                     .insert({ wallet_address: walletAddress })
@@ -84,7 +91,6 @@ export function useUser(): UseUserReturn {
                 setUser(existing);
             }
 
-            // Fetch completed quests
             const { data: quests } = await supabase
                 .from("user_quests")
                 .select("quest_id")
@@ -100,17 +106,28 @@ export function useUser(): UseUserReturn {
         }
     }, [walletAddress]);
 
-    const updateProfile = useCallback(async (username: string, twitter: string, discord: string) => {
+    const updateProfile = useCallback(async (username: string, twitter: string, discord: string, referredBy?: string) => {
         if (!walletAddress || !isSupabaseConfigured()) return;
 
         try {
+            // Generate referral code for the user
+            const refCode = generateReferralCode(username);
+
+            const updatePayload: Record<string, string | null> = {
+                username: username || null,
+                twitter_handle: twitter || null,
+                discord_handle: discord || null,
+                referral_code: refCode,
+            };
+
+            // Only set referred_by if provided and user doesn't already have one
+            if (referredBy && referredBy.trim()) {
+                updatePayload.referred_by = referredBy.trim();
+            }
+
             const { error } = await supabase
                 .from("users")
-                .update({
-                    username: username || null,
-                    twitter_handle: twitter || null,
-                    discord_handle: discord || null,
-                })
+                .update(updatePayload)
                 .eq("wallet_address", walletAddress);
 
             if (error) {
@@ -124,7 +141,6 @@ export function useUser(): UseUserReturn {
             localStorage.setItem("dm_discord_handle", discord);
             window.dispatchEvent(new Event("dm_profile_updated"));
 
-            // Refresh user data
             await fetchUser();
         } catch (err) {
             console.error("Profile update error:", err);
