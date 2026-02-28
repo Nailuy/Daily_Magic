@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { ExternalLink, Lock, Loader2, CheckCircle2, Gift, Sparkles, Link2, Zap } from "lucide-react";
+import { ExternalLink, Lock, Loader2, CheckCircle2, Gift, Sparkles, Link2, Zap, AlertTriangle } from "lucide-react";
 import confetti from "canvas-confetti";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { useSession } from "@/components/SessionContext";
@@ -17,9 +17,11 @@ interface QuestCardProps {
     icon: React.ReactNode;
     index: number;
     daily?: boolean;
-    validationType?: "twitter_url";
+    validationType?: "twitter_url" | "xp_gate";
     alreadyCompleted?: boolean;
     onClaimed?: () => void;
+    userTwitterHandle?: string;
+    userXp?: number;
 }
 
 export default function QuestCard({
@@ -34,6 +36,8 @@ export default function QuestCard({
     validationType,
     alreadyCompleted,
     onClaimed,
+    userTwitterHandle,
+    userXp,
 }: QuestCardProps) {
     const { connected, publicKey } = useWallet();
     const { sessionActive } = useSession();
@@ -43,6 +47,7 @@ export default function QuestCard({
     const [twitterUrl, setTwitterUrl] = useState("");
     const [urlError, setUrlError] = useState("");
     const [claiming, setClaiming] = useState(false);
+    const [toastError, setToastError] = useState("");
 
     // CRITICAL: Sync status when alreadyCompleted changes (async DB load)
     useEffect(() => {
@@ -50,6 +55,14 @@ export default function QuestCard({
             setStatus("claimed");
         }
     }, [alreadyCompleted]);
+
+    // Auto-dismiss toast after 4 seconds
+    useEffect(() => {
+        if (toastError) {
+            const t = setTimeout(() => setToastError(""), 4000);
+            return () => clearTimeout(t);
+        }
+    }, [toastError]);
 
     const handleStart = useCallback(() => {
         if (!connected) return;
@@ -60,10 +73,21 @@ export default function QuestCard({
             return;
         }
 
-        if (link.startsWith("/")) {
-            /* internal link */
-        } else {
+        // For XP gate, validate before proceeding
+        if (validationType === "xp_gate") {
+            if ((userXp ?? 0) < 100) {
+                setToastError("You need at least 100 XP (Wizard Rank) to claim this!");
+                return;
+            }
+            // XP requirement met — go straight to verified
+            setStatus("verified");
+            return;
+        }
+
+        if (link !== "#" && !link.startsWith("/")) {
             window.open(link, "_blank");
+        } else if (link.startsWith("/")) {
+            /* internal link — no new tab needed */
         }
 
         setStatus("verifying");
@@ -73,7 +97,7 @@ export default function QuestCard({
         } else {
             setTimeout(() => setStatus("verified"), 3000);
         }
-    }, [connected, link, sessionActive, validationType]);
+    }, [connected, link, sessionActive, validationType, userXp]);
 
     const handleUrlSubmit = useCallback(() => {
         if (!twitterUrl.trim()) {
@@ -85,6 +109,16 @@ export default function QuestCard({
             setUrlError("Must be a twitter.com or x.com link");
             return;
         }
+
+        // Validate that the URL contains the user's twitter handle
+        if (userTwitterHandle) {
+            const handle = userTwitterHandle.replace("@", "").toLowerCase();
+            if (handle && !twitterUrl.toLowerCase().includes(handle)) {
+                setUrlError("The link must contain your X username.");
+                return;
+            }
+        }
+
         setUrlError("");
 
         if (sessionActive) {
@@ -93,10 +127,18 @@ export default function QuestCard({
             setStatus("verifying");
             setTimeout(() => setStatus("verified"), 3000);
         }
-    }, [twitterUrl, sessionActive]);
+    }, [twitterUrl, sessionActive, userTwitterHandle]);
 
     const handleClaim = useCallback(async () => {
         if (!publicKey || !isSupabaseConfigured()) return;
+
+        // Double-check XP gate at claim time
+        if (validationType === "xp_gate" && (userXp ?? 0) < 100) {
+            setToastError("You need at least 100 XP (Wizard Rank) to claim this!");
+            setStatus("idle");
+            return;
+        }
+
         setClaiming(true);
         const walletAddress = publicKey.toBase58();
 
@@ -146,7 +188,7 @@ export default function QuestCard({
         } finally {
             setClaiming(false);
         }
-    }, [publicKey, questId, xp, twitterUrl, validationType, onClaimed]);
+    }, [publicKey, questId, xp, twitterUrl, validationType, userXp, onClaimed]);
 
     const isLocked = !connected;
 
@@ -168,6 +210,19 @@ export default function QuestCard({
                     <Zap className="h-2.5 w-2.5 text-[#AA00FF]/60" />
                     <span className="text-[9px] font-mono text-[#AA00FF]/60">DAILY</span>
                 </div>
+            )}
+
+            {/* Toast error */}
+            {toastError && (
+                <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute top-3 left-3 right-3 z-10 flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2"
+                >
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                    <span className="text-[10px] font-mono text-red-400">{toastError}</span>
+                </motion.div>
             )}
 
             {!isLocked && status !== "claimed" && (

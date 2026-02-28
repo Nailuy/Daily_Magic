@@ -29,17 +29,17 @@ function getDailyQuests(today: string) {
             description:
                 "Drop a GM in the #general channel to show you're active in the community today.",
             xp: 10,
-            link: "https://discord.gg/magicblock",
+            link: "https://discord.com/channels/943797222162726962/1021340411022819328",
             icon: <MessageSquare className="h-5 w-5" />,
             daily: true,
         },
         {
             questId: `daily_price_${today}`,
-            title: "Check MAGIC Price",
+            title: "Check Magic Block X",
             description:
-                "Visit the token page and check the latest price action. Knowledge is power.",
+                "Visit the Magic Block X page and check the latest updates. Knowledge is power.",
             xp: 5,
-            link: "https://magicblock.gg",
+            link: "https://x.com/magicblock",
             icon: <BarChart3 className="h-5 w-5" />,
             daily: true,
         },
@@ -47,9 +47,9 @@ function getDailyQuests(today: string) {
             questId: `share_post_${today}`,
             title: "Share a Post on X",
             description:
-                "Post about Solana or MagicBlock on X and paste the link below.",
+                "Post about Solana or MagicBlock on X and paste your link below. Must contain your X username.",
             xp: 15,
-            link: "https://twitter.com/magicblock",
+            link: "https://x.com/magicblock",
             icon: <Zap className="h-5 w-5" />,
             daily: true,
             validationType: "twitter_url" as const,
@@ -60,7 +60,7 @@ function getDailyQuests(today: string) {
             description:
                 "Check in on your Daily Magic dashboard. Consistency is the key to mastery.",
             xp: 5,
-            link: "/",
+            link: "https://dailymagic.vercel.app/",
             icon: <Star className="h-5 w-5" />,
             daily: true,
         },
@@ -74,7 +74,7 @@ const milestoneQuests = [
         description:
             "Stay in the loop with the latest updates, announcements, and alpha from the team.",
         xp: 50,
-        link: "https://twitter.com/magicblock",
+        link: "https://x.com/magicblock",
         icon: <Twitter className="h-5 w-5" />,
     },
     {
@@ -83,7 +83,7 @@ const milestoneQuests = [
         description:
             "Connect with the community, ask questions, and participate in exclusive events.",
         xp: 75,
-        link: "https://discord.gg/magicblock",
+        link: "https://discord.com/invite/MBkdC3gxcv",
         icon: <MessageSquare className="h-5 w-5" />,
     },
     {
@@ -106,11 +106,11 @@ const milestoneQuests = [
     },
     {
         questId: "visit_site",
-        title: "Visit MagicBlock.gg",
+        title: "Visit Magic Block site",
         description:
             "Explore the official website and learn about the high-speed Solana L2.",
         xp: 30,
-        link: "https://magicblock.gg",
+        link: "https://www.magicblock.xyz/",
         icon: <Globe className="h-5 w-5" />,
     },
     {
@@ -121,13 +121,17 @@ const milestoneQuests = [
         xp: 200,
         link: "#",
         icon: <Trophy className="h-5 w-5" />,
+        validationType: "xp_gate" as const,
     },
 ];
 
 export default function QuestsPage() {
-    const { completedQuests, refreshUser } = useUser();
+    const { user, xp, completedQuests, refreshUser } = useUser();
+
     const today = getTodayStr();
     const dailyQuests = getDailyQuests(today);
+
+    const userTwitterHandle = user?.twitter_handle?.replace("@", "") || "";
 
     return (
         <>
@@ -191,6 +195,8 @@ export default function QuestsPage() {
                             validationType={quest.validationType}
                             alreadyCompleted={completedQuests.has(quest.questId)}
                             onClaimed={refreshUser}
+                            userTwitterHandle={userTwitterHandle}
+                            userXp={xp}
                         />
                     ))}
                 </div>
@@ -226,8 +232,11 @@ export default function QuestsPage() {
                             link={quest.link}
                             icon={quest.icon}
                             index={i}
+                            validationType={quest.validationType}
                             alreadyCompleted={completedQuests.has(quest.questId)}
                             onClaimed={refreshUser}
+                            userTwitterHandle={userTwitterHandle}
+                            userXp={xp}
                         />
                     ))}
                 </div>
