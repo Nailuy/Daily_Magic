@@ -99,10 +99,12 @@ export function useUser(): UseUserReturn {
         }
 
         setLoading(true);
+        const USER_COLS = "wallet_address, username, twitter_handle, discord_handle, xp, rank, referral_code, referred_by";
+
         try {
-            const { data: existing, error: fetchError } = await supabase
+            let { data: existing, error: fetchError } = await supabase
                 .from("users")
-                .select("*")
+                .select(USER_COLS)
                 .eq("wallet_address", walletAddress)
                 .single();
 
@@ -111,30 +113,40 @@ export function useUser(): UseUserReturn {
                 const { data: newUser, error: insertError } = await supabase
                     .from("users")
                     .insert({ wallet_address: walletAddress })
-                    .select()
+                    .select(USER_COLS)
                     .single();
 
                 if (insertError) {
                     console.error("Error creating user:", insertError);
-                } else {
+                } else if (newUser) {
                     // Auto-assign referral code to new user
-                    if (newUser && !newUser.referral_code) {
-                        const code = await saveReferralCodeWithRetry(walletAddress);
-                        if (code) {
-                            newUser.referral_code = code;
-                        }
+                    if (!newUser.referral_code) {
+                        await saveReferralCodeWithRetry(walletAddress);
+                        // Re-fetch to get the fresh row with the saved code
+                        const { data: refreshed } = await supabase
+                            .from("users")
+                            .select(USER_COLS)
+                            .eq("wallet_address", walletAddress)
+                            .single();
+                        setUser(refreshed ?? newUser);
+                    } else {
+                        setUser(newUser);
                     }
-                    setUser(newUser);
                 }
             } else if (existing) {
                 // Auto-patch existing user who has NULL referral_code
                 if (!existing.referral_code) {
-                    const code = await saveReferralCodeWithRetry(walletAddress);
-                    if (code) {
-                        existing.referral_code = code;
-                    }
+                    await saveReferralCodeWithRetry(walletAddress);
+                    // Re-fetch to get the fresh row with the saved code
+                    const { data: refreshed } = await supabase
+                        .from("users")
+                        .select(USER_COLS)
+                        .eq("wallet_address", walletAddress)
+                        .single();
+                    setUser(refreshed ?? existing);
+                } else {
+                    setUser(existing);
                 }
-                setUser(existing);
             }
 
             // Fetch completed quests
