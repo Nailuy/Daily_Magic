@@ -77,7 +77,7 @@ export default function QuestCard({
 
     const handleCopyReferralLink = useCallback(() => {
         if (!userReferralCode) {
-            setToastError("Complete your profile first to get a referral code.");
+            setToastError("Your referral code is being generated. Please wait a moment and try again.");
             return;
         }
         const refLink = `https://dailymagic.vercel.app/?ref=${userReferralCode}`;
@@ -87,7 +87,7 @@ export default function QuestCard({
 
     const handleVerifyReferrals = useCallback(async () => {
         if (!userReferralCode || !isSupabaseConfigured()) {
-            setToastError("Complete your profile first to get a referral code.");
+            setToastError("Your referral code is being generated. Please wait a moment and try again.");
             return;
         }
 
@@ -289,7 +289,17 @@ export default function QuestCard({
                 </div>
 
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white/90 mb-1.5">{title}</h3>
-                <p className="text-xs text-gray-500 dark:text-white/35 leading-relaxed mb-6">{description}</p>
+                <p className="text-xs text-gray-500 dark:text-white/35 leading-relaxed mb-3">{description}</p>
+
+                {/* Show referral link on referral_gate quests */}
+                {validationType === "referral_gate" && !isLocked && status !== "claimed" && userReferralCode && (
+                    <div className="mb-4 rounded-xl border border-[#AA00FF]/10 bg-[#AA00FF]/[0.02] px-3 py-2">
+                        <p className="text-[9px] font-mono text-white/30 mb-1">YOUR REFERRAL LINK</p>
+                        <p className="text-[11px] font-mono text-[#AA00FF]/70 break-all select-all">
+                            https://dailymagic.vercel.app/?ref={userReferralCode}
+                        </p>
+                    </div>
+                )}
 
                 {isLocked ? (
                     <div className="flex items-center gap-2 text-gray-400 dark:text-white/20">
