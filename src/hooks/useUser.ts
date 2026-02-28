@@ -45,11 +45,42 @@ export function getRankForXp(xp: number): { name: string; threshold: number; nex
     return { name: current.name, threshold: current.threshold, nextThreshold: next };
 }
 
-/** Generate a unique referral code from username */
-function generateReferralCode(username: string): string {
-    const base = username.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8);
-    const rand = Math.random().toString(36).substring(2, 6);
-    return `${base}_${rand}`;
+/** Generate a random 8-character uppercase alphanumeric string */
+function generateRandomCode(): string {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
+    for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
+/** Save a referral code with retry on unique constraint collision */
+async function saveReferralCodeWithRetry(walletAddress: string, maxRetries = 5): Promise<string | null> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const code = generateRandomCode();
+        const { error } = await supabase
+            .from("users")
+            .update({ referral_code: code })
+            .eq("wallet_address", walletAddress);
+
+        if (!error) {
+            return code;
+        }
+
+        // 23505 = unique constraint violation -> retry with new code
+        if (error.code === "23505") {
+            console.warn(`Referral code collision (${code}), retrying... (${attempt + 1}/${maxRetries})`);
+            continue;
+        }
+
+        // Other error -> abort
+        console.error("Error saving referral code:", error);
+        return null;
+    }
+
+    console.error("Failed to generate unique referral code after max retries");
+    return null;
 }
 
 export function useUser(): UseUserReturn {
@@ -76,6 +107,7 @@ export function useUser(): UseUserReturn {
                 .single();
 
             if (fetchError && fetchError.code === "PGRST116") {
+                // User does not exist — insert with wallet_address ONLY
                 const { data: newUser, error: insertError } = await supabase
                     .from("users")
                     .insert({ wallet_address: walletAddress })
@@ -85,12 +117,27 @@ export function useUser(): UseUserReturn {
                 if (insertError) {
                     console.error("Error creating user:", insertError);
                 } else {
+                    // Auto-assign referral code to new user
+                    if (newUser && !newUser.referral_code) {
+                        const code = await saveReferralCodeWithRetry(walletAddress);
+                        if (code) {
+                            newUser.referral_code = code;
+                        }
+                    }
                     setUser(newUser);
                 }
             } else if (existing) {
+                // Auto-patch existing user who has NULL referral_code
+                if (!existing.referral_code) {
+                    const code = await saveReferralCodeWithRetry(walletAddress);
+                    if (code) {
+                        existing.referral_code = code;
+                    }
+                }
                 setUser(existing);
             }
 
+            // Fetch completed quests
             const { data: quests } = await supabase
                 .from("user_quests")
                 .select("quest_id")
@@ -110,18 +157,14 @@ export function useUser(): UseUserReturn {
         if (!walletAddress || !isSupabaseConfigured()) return;
 
         try {
-            // Generate referral code for the user
-            const refCode = generateReferralCode(username);
-
             const updatePayload: Record<string, string | null> = {
                 username: username || null,
                 twitter_handle: twitter || null,
                 discord_handle: discord || null,
-                referral_code: refCode,
             };
 
             // Only set referred_by if provided and user doesn't already have one
-            if (referredBy && referredBy.trim()) {
+            if (referredBy && referredBy.trim() && (!user || !user.referred_by)) {
                 updatePayload.referred_by = referredBy.trim();
             }
 
@@ -145,7 +188,7 @@ export function useUser(): UseUserReturn {
         } catch (err) {
             console.error("Profile update error:", err);
         }
-    }, [walletAddress, fetchUser]);
+    }, [walletAddress, fetchUser, user]);
 
     useEffect(() => {
         fetchUser();

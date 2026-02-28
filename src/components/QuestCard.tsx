@@ -251,13 +251,17 @@ export default function QuestCard({
                 }`}
         >
             {/* Top-right badges: stacked vertically to avoid overlap */}
-            <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
+            <div className="absolute top-3 right-3 flex flex-col items-end gap-2 z-[1]">
                 {daily && (
                     <div className="flex items-center gap-1 rounded-full bg-[#AA00FF]/10 px-2 py-0.5 border border-[#AA00FF]/20">
                         <Zap className="h-2.5 w-2.5 text-[#AA00FF]/60" />
                         <span className="text-[9px] font-mono text-[#AA00FF]/60">DAILY</span>
                     </div>
                 )}
+                <div className="flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.06] px-3 py-1">
+                    <Sparkles className="h-3 w-3 text-[#AA00FF]/60" />
+                    <span className="font-mono text-[11px] font-medium text-gray-500 dark:text-white/50">{xp} XP</span>
+                </div>
             </div>
 
             {/* Toast error */}
@@ -278,13 +282,9 @@ export default function QuestCard({
             )}
 
             <div className="relative p-6">
-                <div className="flex items-start justify-between mb-4">
+                <div className="mb-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.06] text-gray-500 dark:text-white/50 group-hover:text-[#AA00FF]/70 transition-colors duration-300">
                         {icon}
-                    </div>
-                    <div className="flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.06] px-3 py-1">
-                        <Sparkles className="h-3 w-3 text-[#AA00FF]/60" />
-                        <span className="font-mono text-[11px] font-medium text-gray-500 dark:text-white/50">{xp} XP</span>
                     </div>
                 </div>
 
