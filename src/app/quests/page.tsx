@@ -96,14 +96,14 @@ const milestoneQuests = [
         icon: <BookOpen className="h-5 w-5" />,
     },
     {
-        questId: "invite_friends",
-        title: "Invite 3 Friends",
+        questId: "global_3_posts",
+        title: "Make 3 posts for Magic Block",
         description:
-            "Spread the word. Invite three friends to the Daily Magic platform and earn bonus XP.",
+            "Write 3 different posts about Magic Block on X and paste the links below to earn massive XP.",
         xp: 150,
         link: "#",
-        icon: <Users className="h-5 w-5" />,
-        validationType: "referral_gate" as const,
+        icon: <MessageSquare className="h-5 w-5" />,
+        validationType: "twitter_3_posts" as const,
     },
     {
         questId: "visit_site",
@@ -133,7 +133,6 @@ export default function QuestsPage() {
     const dailyQuests = getDailyQuests(today);
 
     const userTwitterHandle = user?.twitter_handle?.replace("@", "") || "";
-    const userReferralCode = user?.referral_code || "";
 
     return (
         <>
@@ -199,7 +198,6 @@ export default function QuestsPage() {
                             onClaimed={refreshUser}
                             userTwitterHandle={userTwitterHandle}
                             userXp={xp}
-                            userReferralCode={userReferralCode}
                         />
                     ))}
                 </div>

@@ -10,8 +10,6 @@ export interface UserData {
     twitter_handle: string | null;
     discord_handle: string | null;
     xp: number;
-    referral_code: string | null;
-    referred_by: string | null;
 }
 
 export interface UseUserReturn {
@@ -22,7 +20,7 @@ export interface UseUserReturn {
     loading: boolean;
     needsProfile: boolean;
     refreshUser: () => Promise<void>;
-    updateProfile: (username: string, twitter: string, discord: string, referredBy?: string) => Promise<void>;
+    updateProfile: (username: string, twitter: string, discord: string) => Promise<void>;
 }
 
 const RANKS = [
@@ -44,43 +42,7 @@ export function getRankForXp(xp: number): { name: string; threshold: number; nex
     return { name: current.name, threshold: current.threshold, nextThreshold: next };
 }
 
-/** Generate a random 8-character uppercase alphanumeric string */
-function generateRandomCode(): string {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let code = "";
-    for (let i = 0; i < 8; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-}
 
-/** Save a referral code with retry on unique constraint collision */
-async function saveReferralCodeWithRetry(walletAddress: string, maxRetries = 5): Promise<string | null> {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-        const code = generateRandomCode();
-        const { error } = await supabase
-            .from("users")
-            .update({ referral_code: code })
-            .eq("wallet_address", walletAddress);
-
-        if (!error) {
-            return code;
-        }
-
-        // 23505 = unique constraint violation -> retry with new code
-        if (error.code === "23505") {
-            console.warn(`Referral code collision (${code}), retrying... (${attempt + 1}/${maxRetries})`);
-            continue;
-        }
-
-        // Other error -> abort
-        console.error("Error saving referral code:", error);
-        return null;
-    }
-
-    console.error("Failed to generate unique referral code after max retries");
-    return null;
-}
 
 export function useUser(): UseUserReturn {
     const { publicKey, connected } = useWallet();
@@ -98,7 +60,7 @@ export function useUser(): UseUserReturn {
         }
 
         setLoading(true);
-        const USER_COLS = "wallet_address, username, twitter_handle, discord_handle, xp, referral_code, referred_by";
+        const USER_COLS = "wallet_address, username, twitter_handle, discord_handle, xp";
 
         try {
             let { data: existing, error: fetchError } = await supabase
@@ -118,34 +80,10 @@ export function useUser(): UseUserReturn {
                 if (insertError) {
                     console.error("Error creating user:", insertError);
                 } else if (newUser) {
-                    // Auto-assign referral code to new user
-                    if (!newUser.referral_code) {
-                        await saveReferralCodeWithRetry(walletAddress);
-                        // Re-fetch to get the fresh row with the saved code
-                        const { data: refreshed } = await supabase
-                            .from("users")
-                            .select(USER_COLS)
-                            .eq("wallet_address", walletAddress)
-                            .single();
-                        setUser(refreshed ?? newUser);
-                    } else {
-                        setUser(newUser);
-                    }
+                    setUser(newUser);
                 }
             } else if (existing) {
-                // Auto-patch existing user who has NULL referral_code
-                if (!existing.referral_code) {
-                    await saveReferralCodeWithRetry(walletAddress);
-                    // Re-fetch to get the fresh row with the saved code
-                    const { data: refreshed } = await supabase
-                        .from("users")
-                        .select(USER_COLS)
-                        .eq("wallet_address", walletAddress)
-                        .single();
-                    setUser(refreshed ?? existing);
-                } else {
-                    setUser(existing);
-                }
+                setUser(existing);
             }
 
             // Fetch completed quests
@@ -164,7 +102,7 @@ export function useUser(): UseUserReturn {
         }
     }, [walletAddress]);
 
-    const updateProfile = useCallback(async (username: string, twitter: string, discord: string, referredBy?: string) => {
+    const updateProfile = useCallback(async (username: string, twitter: string, discord: string) => {
         if (!walletAddress || !isSupabaseConfigured()) return;
 
         try {
@@ -173,11 +111,6 @@ export function useUser(): UseUserReturn {
                 twitter_handle: twitter || null,
                 discord_handle: discord || null,
             };
-
-            // Only set referred_by if provided and user doesn't already have one
-            if (referredBy && referredBy.trim() && (!user || !user.referred_by)) {
-                updatePayload.referred_by = referredBy.trim();
-            }
 
             const { error } = await supabase
                 .from("users")

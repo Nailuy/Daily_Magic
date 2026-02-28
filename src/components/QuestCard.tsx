@@ -17,12 +17,11 @@ interface QuestCardProps {
     icon: React.ReactNode;
     index: number;
     daily?: boolean;
-    validationType?: "twitter_url" | "xp_gate" | "referral_gate";
+    validationType?: "twitter_url" | "xp_gate" | "twitter_3_posts";
     alreadyCompleted?: boolean;
     onClaimed?: () => void;
     userTwitterHandle?: string;
     userXp?: number;
-    userReferralCode?: string;
 }
 
 export default function QuestCard({
@@ -39,7 +38,6 @@ export default function QuestCard({
     onClaimed,
     userTwitterHandle,
     userXp,
-    userReferralCode,
 }: QuestCardProps) {
     const { connected, publicKey } = useWallet();
     const { sessionActive } = useSession();
@@ -47,10 +45,10 @@ export default function QuestCard({
         alreadyCompleted ? "claimed" : "idle"
     );
     const [twitterUrl, setTwitterUrl] = useState("");
+    const [twitterUrls, setTwitterUrls] = useState(["", "", ""]);
     const [urlError, setUrlError] = useState("");
     const [claiming, setClaiming] = useState(false);
     const [toastError, setToastError] = useState("");
-    const [copied, setCopied] = useState(false);
 
     // CRITICAL: Sync status when alreadyCompleted changes (async DB load)
     useEffect(() => {
@@ -67,49 +65,7 @@ export default function QuestCard({
         }
     }, [toastError]);
 
-    // Auto-dismiss copy state
-    useEffect(() => {
-        if (copied) {
-            const t = setTimeout(() => setCopied(false), 2000);
-            return () => clearTimeout(t);
-        }
-    }, [copied]);
 
-    const handleCopyReferralLink = useCallback(() => {
-        if (!userReferralCode) {
-            setToastError("Your referral code is being generated. Please wait a moment and try again.");
-            return;
-        }
-        const refLink = `https://dailymagic.vercel.app/?ref=${userReferralCode}`;
-        navigator.clipboard.writeText(refLink);
-        setCopied(true);
-    }, [userReferralCode]);
-
-    const handleVerifyReferrals = useCallback(async () => {
-        if (!userReferralCode || !isSupabaseConfigured()) {
-            setToastError("Your referral code is being generated. Please wait a moment and try again.");
-            return;
-        }
-
-        // Query how many users have referred_by matching our code
-        const { count, error } = await supabase
-            .from("users")
-            .select("*", { count: "exact", head: true })
-            .eq("referred_by", userReferralCode);
-
-        if (error) {
-            console.error("Referral count error:", error);
-            setToastError("Could not verify referrals. Try again.");
-            return;
-        }
-
-        const referralCount = count || 0;
-        if (referralCount >= 3) {
-            setStatus("verified");
-        } else {
-            setToastError(`You have only invited ${referralCount}/3 friends so far.`);
-        }
-    }, [userReferralCode]);
 
     const handleStart = useCallback(() => {
         if (!connected) return;
@@ -130,8 +86,8 @@ export default function QuestCard({
             return;
         }
 
-        // For referral gate, show copy + verify UI
-        if (validationType === "referral_gate") {
+        // For twitter_3_posts validation, show input fields
+        if (validationType === "twitter_3_posts") {
             setStatus("verifying");
             return;
         }
@@ -179,6 +135,46 @@ export default function QuestCard({
         }
     }, [twitterUrl, sessionActive, userTwitterHandle]);
 
+    const handle3UrlsSubmit = useCallback(() => {
+        if (twitterUrls.some((url) => !url.trim())) {
+            setUrlError("Please fill in all 3 links.");
+            return;
+        }
+        const urlRegex = /(twitter\.com|x\.com)/i;
+        if (twitterUrls.some((url) => !urlRegex.test(url))) {
+            setUrlError("All links must be from twitter.com or x.com");
+            return;
+        }
+
+        // Check uniqueness
+        const uniqueUrls = new Set(twitterUrls.map(u => u.trim().toLowerCase()));
+        if (uniqueUrls.size !== 3) {
+            setUrlError("Please provide 3 distinct post links.");
+            return;
+        }
+
+        // Validate that each URL contains the user's twitter handle
+        if (userTwitterHandle) {
+            const handle = userTwitterHandle.replace("@", "").toLowerCase();
+            if (handle) {
+                const missingHandle = twitterUrls.some((url) => !url.toLowerCase().includes(handle));
+                if (missingHandle) {
+                    setUrlError(`All posts must be made by your registered X account (@${userTwitterHandle}).`);
+                    return;
+                }
+            }
+        }
+
+        setUrlError("");
+
+        if (sessionActive) {
+            setStatus("verified");
+        } else {
+            setStatus("verifying");
+            setTimeout(() => setStatus("verified"), 3000);
+        }
+    }, [twitterUrls, sessionActive, userTwitterHandle]);
+
     const handleClaim = useCallback(async () => {
         if (!publicKey || !isSupabaseConfigured()) return;
 
@@ -199,6 +195,8 @@ export default function QuestCard({
             };
             if (validationType === "twitter_url" && twitterUrl.trim()) {
                 insertPayload.submission_data = twitterUrl.trim();
+            } else if (validationType === "twitter_3_posts" && twitterUrls.every((u) => u.trim())) {
+                insertPayload.submission_data = JSON.stringify(twitterUrls.map(u => u.trim()));
             }
 
             const { error: questError } = await supabase
@@ -234,7 +232,7 @@ export default function QuestCard({
         } finally {
             setClaiming(false);
         }
-    }, [publicKey, questId, xp, twitterUrl, validationType, userXp, onClaimed]);
+    }, [publicKey, questId, xp, twitterUrl, twitterUrls, validationType, userXp, onClaimed]);
 
     const isLocked = !connected;
 
@@ -289,17 +287,7 @@ export default function QuestCard({
                 </div>
 
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white/90 mb-1.5">{title}</h3>
-                <p className="text-xs text-gray-500 dark:text-white/35 leading-relaxed mb-3">{description}</p>
-
-                {/* Show referral link on referral_gate quests */}
-                {validationType === "referral_gate" && !isLocked && status !== "claimed" && userReferralCode && (
-                    <div className="mb-4 rounded-xl border border-[#AA00FF]/10 bg-[#AA00FF]/[0.02] px-3 py-2">
-                        <p className="text-[9px] font-mono text-white/30 mb-1">YOUR REFERRAL LINK</p>
-                        <p className="text-[11px] font-mono text-[#AA00FF]/70 break-all select-all">
-                            https://dailymagic.vercel.app/?ref={userReferralCode}
-                        </p>
-                    </div>
-                )}
+                <p className="text-xs text-gray-500 dark:text-white/35 leading-relaxed mb-6">{description}</p>
 
                 {isLocked ? (
                     <div className="flex items-center gap-2 text-gray-400 dark:text-white/20">
@@ -332,27 +320,32 @@ export default function QuestCard({
                             </div>
                             {urlError && <p className="text-[10px] font-mono text-red-400">{urlError}</p>}
                         </div>
-                    ) : validationType === "referral_gate" ? (
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={handleCopyReferralLink}
-                                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-white/[0.04] border border-white/[0.08] px-3 py-2 font-mono text-[11px] font-medium text-white/60 hover:bg-[#AA00FF]/10 hover:border-[#AA00FF]/25 hover:text-[#AA00FF] cursor-pointer transition-all"
-                                >
-                                    {copied ? (
-                                        <><Check className="h-3.5 w-3.5 text-green-400" />Link Copied!</>
-                                    ) : (
-                                        <><Copy className="h-3.5 w-3.5" />Copy Referral Link</>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={handleVerifyReferrals}
-                                    className="rounded-xl bg-[#AA00FF]/10 border border-[#AA00FF]/25 px-3 py-2 font-mono text-[11px] font-medium text-[#AA00FF] hover:bg-[#AA00FF]/20 cursor-pointer transition-all"
-                                >
-                                    Verify
-                                </button>
-                            </div>
-                            <p className="text-[9px] font-mono text-white/25">Share your link, then click Verify when 3 friends have signed up</p>
+                    ) : validationType === "twitter_3_posts" ? (
+                        <div className="space-y-3">
+                            {[0, 1, 2].map((i) => (
+                                <div key={i} className="relative">
+                                    <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/30" />
+                                    <input
+                                        type="url"
+                                        value={twitterUrls[i]}
+                                        onChange={(e) => {
+                                            const newUrls = [...twitterUrls];
+                                            newUrls[i] = e.target.value;
+                                            setTwitterUrls(newUrls);
+                                            setUrlError("");
+                                        }}
+                                        placeholder={`Link ${i + 1}`}
+                                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs font-mono text-white/80 placeholder:text-white/25 focus:outline-none focus:border-[#AA00FF]/40"
+                                    />
+                                </div>
+                            ))}
+                            <button
+                                onClick={handle3UrlsSubmit}
+                                className="w-full rounded-xl bg-[#AA00FF]/10 border border-[#AA00FF]/25 px-3 py-2 font-mono text-[11px] font-medium text-[#AA00FF] hover:bg-[#AA00FF]/20 cursor-pointer transition-all uppercase tracking-wider"
+                            >
+                                Verify & Claim Links
+                            </button>
+                            {urlError && <p className="text-[10px] font-mono text-red-400 mt-1">{urlError}</p>}
                         </div>
                     ) : (
                         <div className="flex items-center gap-2 text-[#AA00FF]/70">

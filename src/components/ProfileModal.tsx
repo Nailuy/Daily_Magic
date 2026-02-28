@@ -10,10 +10,8 @@ export default function ProfileModal() {
     const [username, setUsername] = useState("");
     const [twitter, setTwitter] = useState("");
     const [discord, setDiscord] = useState("");
-    const [referralInput, setReferralInput] = useState("");
     const [saving, setSaving] = useState(false);
     const [dismissed, setDismissed] = useState(false);
-    const [copiedCode, setCopiedCode] = useState(false);
 
     if (!needsProfile || dismissed) return null;
 
@@ -22,15 +20,8 @@ export default function ProfileModal() {
     const handleSave = async () => {
         if (!allFieldsFilled) return;
         setSaving(true);
-        await updateProfile(username.trim(), twitter.trim(), discord.trim(), referralInput.trim() || undefined);
+        await updateProfile(username.trim(), twitter.trim(), discord.trim());
         setSaving(false);
-    };
-
-    const handleCopyCode = () => {
-        if (!user?.referral_code) return;
-        navigator.clipboard.writeText(user.referral_code);
-        setCopiedCode(true);
-        setTimeout(() => setCopiedCode(false), 2000);
     };
 
     return (
@@ -109,43 +100,6 @@ export default function ProfileModal() {
                                 placeholder="user#0000"
                                 className="w-full rounded-xl border border-white/[0.08] bg-white/[0.02] py-3 px-4 text-sm text-white/80 placeholder:text-white/20 outline-none transition-all focus:border-[#AA00FF]/40"
                             />
-                        </div>
-
-                        {/* Your Referral Code (read-only, auto-generated) */}
-                        {user?.referral_code && (
-                            <div>
-                                <label className="block text-[10px] font-mono text-white/40 mb-1.5 uppercase tracking-wider">
-                                    Your Referral Code
-                                </label>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex-1 rounded-xl border border-[#AA00FF]/15 bg-[#AA00FF]/[0.03] py-3 px-4 text-sm font-mono text-[#AA00FF]/80">
-                                        {user.referral_code}
-                                    </div>
-                                    <button
-                                        onClick={handleCopyCode}
-                                        className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 text-white/40 hover:text-white/70 transition-colors cursor-pointer"
-                                    >
-                                        {copiedCode ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Referral Code Input (Optional — enter someone else's code) */}
-                        <div>
-                            <label className="block text-[10px] font-mono text-white/40 mb-1.5 uppercase tracking-wider">
-                                Referral Code <span className="text-white/20">(Optional)</span>
-                            </label>
-                            <div className="relative">
-                                <Gift className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
-                                <input
-                                    type="text"
-                                    value={referralInput}
-                                    onChange={(e) => setReferralInput(e.target.value)}
-                                    placeholder="Enter a friend's referral code"
-                                    className="w-full rounded-xl border border-white/[0.08] bg-white/[0.02] py-3 pl-10 pr-4 text-sm font-mono text-white/80 placeholder:text-white/20 outline-none transition-all focus:border-[#AA00FF]/40"
-                                />
-                            </div>
                         </div>
                     </div>
 
