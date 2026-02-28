@@ -10,7 +10,6 @@ export interface UserData {
     twitter_handle: string | null;
     discord_handle: string | null;
     xp: number;
-    rank: string;
     referral_code: string | null;
     referred_by: string | null;
 }
@@ -99,7 +98,7 @@ export function useUser(): UseUserReturn {
         }
 
         setLoading(true);
-        const USER_COLS = "wallet_address, username, twitter_handle, discord_handle, xp, rank, referral_code, referred_by";
+        const USER_COLS = "wallet_address, username, twitter_handle, discord_handle, xp, referral_code, referred_by";
 
         try {
             let { data: existing, error: fetchError } = await supabase
