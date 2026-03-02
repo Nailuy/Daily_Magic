@@ -12,7 +12,6 @@
   <p>
     <a href="https://solana.com/"><img src="https://img.shields.io/badge/Solana-Build-000000?style=for-the-badge&logo=solana" alt="Solana" /></a>
     <a href="https://nextjs.org/"><img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" alt="Next.js" /></a>
-    <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-Powered-3ECF8E?style=for-the-badge&logo=supabase" alt="Supabase" /></a>
   </p>
 </div>
 
