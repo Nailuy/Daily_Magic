@@ -138,7 +138,7 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5, duration: 0.5 }}
-        className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden"
+        className="mt-4 w-full"
       >
         <MagicBlockFeed />
       </motion.div>
