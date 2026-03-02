@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Twitter, Sparkles, TrendingUp, Award } from "lucide-react";
 import SecurityModal from "@/components/SecurityModal";
 import Leaderboard from "@/components/Leaderboard";
+import MagicBlockFeed from "@/components/MagicBlockFeed";
 import { useUser, getRankForXp } from "@/hooks/useUser";
 
 export default function DashboardPage() {
@@ -14,33 +14,6 @@ export default function DashboardPage() {
     ? ((xp - rankInfo.threshold) / (rankInfo.nextThreshold - rankInfo.threshold)) * 100
     : 100;
 
-  const timelineRef = useRef<HTMLDivElement>(null);
-
-  // Load Twitter embed widget
-  useEffect(() => {
-    const container = timelineRef.current;
-    if (!container) return;
-
-    const anchor = document.createElement("a");
-    anchor.className = "twitter-timeline";
-    anchor.setAttribute("data-theme", "dark");
-    anchor.setAttribute("data-chrome", "noheader nofooter noborders transparent");
-    anchor.setAttribute("data-height", "400");
-    anchor.href = "https://twitter.com/MagicBlock";
-    anchor.textContent = "Tweets by MagicBlock";
-    container.innerHTML = "";
-    container.appendChild(anchor);
-
-    const script = document.createElement("script");
-    script.src = "https://platform.twitter.com/widgets.js";
-    script.async = true;
-    script.charset = "utf-8";
-    container.appendChild(script);
-
-    return () => {
-      container.innerHTML = "";
-    };
-  }, []);
 
   return (
     <>
@@ -167,7 +140,7 @@ export default function DashboardPage() {
         transition={{ delay: 0.5, duration: 0.5 }}
         className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden"
       >
-        <div ref={timelineRef} className="min-h-[200px]" />
+        <MagicBlockFeed />
       </motion.div>
 
       {/* Footer */}
