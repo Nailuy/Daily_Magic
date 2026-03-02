@@ -1,42 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
+import { Tweet } from 'react-tweet';
 
 export default function MagicBlockFeed() {
-    useEffect(() => {
-        // Dynamically inject the Twitter script to ensure it loads on the client
-        const script = document.createElement("script");
-        script.src = "https://platform.twitter.com/widgets.js";
-        script.async = true;
-        script.charset = "utf-8";
-        document.body.appendChild(script);
-
-        // Force re-evaluation if script is already present
-        if ((window as unknown as Record<string, unknown>).twttr) {
-            const twttr = (window as unknown as Record<string, unknown>).twttr as { widgets?: { load: () => void } };
-            twttr.widgets?.load();
-        }
-
-        return () => {
-            // Cleanup script on unmount to prevent duplicates
-            try {
-                document.body.removeChild(script);
-            } catch {
-                // Script already removed
-            }
-        };
-    }, []);
+    // Hardcoded recent tweet IDs from @magicblock for the MVP.
+    // We can easily update these strings or move them to Supabase later.
+    const recentTweetIds = [
+        "1888258327178351093", // Example MagicBlock tweet
+        "1888258330558918933", // Example MagicBlock tweet
+        "1885695843477197176"  // Example MagicBlock tweet
+    ];
 
     return (
-        <div className="w-full h-[600px] overflow-hidden rounded-xl border border-gray-800 bg-[#000000]">
-            <a
-                className="twitter-timeline"
-                data-theme="dark"
-                data-height="600"
-                href="https://twitter.com/magicblock"
-            >
-                Tweets by MagicBlock
-            </a>
+        <div className="w-full flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {recentTweetIds.map((id) => (
+                    <div key={id} className="w-full flex justify-center dark">
+                        <Tweet id={id} />
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }
