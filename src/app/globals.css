@@ -187,22 +187,21 @@
   }
 }
 
-/* react-tweet custom overrides */
+/* React Tweet Native Dark Theme Overrides */
 .react-tweet-theme {
-  --tweet-bg-color: transparent !important;
-  --tweet-border-color: transparent !important;
-  --tweet-border: none !important;
+  --tweet-bg-color: #0A0A0A !important;
+  --tweet-bg-color-hover: #111111 !important;
+  --tweet-border-color: #1F2937 !important;
+  --tweet-border: 1px solid var(--tweet-border-color) !important;
   --tweet-font-family: inherit !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
-/* Hide scrollbar for the tweet containers but allow scrolling */
-.custom-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.custom-scrollbar {
-  -ms-overflow-style: none;
-  /* IE and Edge */
-  scrollbar-width: none;
-  /* Firefox */
+/* Ensure the wrapper respects our border radius */
+[data-theme="dark"] .react-tweet-theme,
+.react-tweet-theme {
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
 }
