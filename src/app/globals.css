@@ -186,3 +186,23 @@
     background-clip: text;
   }
 }
+
+/* react-tweet custom overrides */
+.react-tweet-theme {
+  --tweet-bg-color: transparent !important;
+  --tweet-border-color: transparent !important;
+  --tweet-border: none !important;
+  --tweet-font-family: inherit !important;
+}
+
+/* Hide scrollbar for the tweet containers but allow scrolling */
+.custom-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.custom-scrollbar {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
