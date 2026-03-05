@@ -74,7 +74,7 @@ export default function Sidebar() {
                         DAILY MAGIC
                     </h1>
                     <p className="text-[10px] font-mono tracking-[0.2em] text-gray-400 dark:text-white/30 uppercase">
-                        by Magic Block
+                        for Magic Block
                     </p>
                 </div>
             </div>
