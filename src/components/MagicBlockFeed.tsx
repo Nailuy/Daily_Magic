@@ -6,9 +6,9 @@ export default function MagicBlockFeed() {
     // Hardcoded recent tweet IDs from @magicblock for the MVP.
     // We can easily update these strings or move them to Supabase later.
     const recentTweetIds = [
+        "2029559586592805332",
         "2029227612929966365",
-        "2029195158525251951",
-        "2028832784341410073"
+        "2029195158525251951"
     ];
 
     return (
