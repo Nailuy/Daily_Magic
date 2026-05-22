@@ -1,14 +1,47 @@
 "use client";
 
+import React from 'react';
 import { Tweet } from 'react-tweet';
 
+class TweetErrorBoundary extends React.Component<
+    { id: string; children: React.ReactNode },
+    { hasError: boolean }
+> {
+    constructor(props: { id: string; children: React.ReactNode }) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="w-full rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 text-center">
+                    <p className="text-sm text-white/40 mb-2">Tweet unavailable</p>
+                    <a
+                        href={`https://x.com/i/status/${this.props.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-[#AA00FF]/70 hover:text-[#AA00FF] transition-colors"
+                    >
+                        View on X →
+                    </a>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
 export default function MagicBlockFeed() {
-    // Hardcoded recent tweet IDs from @magicblock for the MVP.
-    // We can easily update these strings or move them to Supabase later.
+
     const recentTweetIds = [
-        "2029559586592805332",
-        "2029227612929966365",
-        "2029195158525251951"
+        "2028487669215289595",
+        "2028168418332152093",
+        "2027410538549190942"
     ];
 
     return (
@@ -20,7 +53,9 @@ export default function MagicBlockFeed() {
                         className="w-full h-fit flex justify-center dark transition-transform duration-300 hover:-translate-y-1"
                     >
                         <div className="w-full">
-                            <Tweet id={id} />
+                            <TweetErrorBoundary id={id}>
+                                <Tweet id={id} />
+                            </TweetErrorBoundary>
                         </div>
                     </div>
                 ))}
